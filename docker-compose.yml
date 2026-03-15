@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: gophermart-db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: gofermart
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: gophermart-app
+    depends_on:
+      - postgres
+    environment:
+      RUN_ADDRESS: ":8080"
+      DATABASE_URI: "postgres://user:pass@postgres:5432/gofermart?sslmode=disable"
+      ACCRUAL_SYSTEM_ADDRESS: "http://accrual:8080"
+    ports:
+      - "8080:8080"
+    command: make run
+
+volumes:
+  postgres_data:

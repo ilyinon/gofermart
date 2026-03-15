@@ -1,6 +1,22 @@
-# go-musthave-diploma-tpl
+# go-musthave-diploma
 
-Шаблон репозитория для индивидуального дипломного проекта курса «Go-разработчик»
+Для запуска проекта нужно выполнить 
+
+```bash
+make up 
+make migrate 
+make run
+```
+
+
+Для тестирования 
+```bash
+python test_gophermart.py
+```
+ который прогонит базовые проверки
+
+
+
 
 # Начало работы
 
