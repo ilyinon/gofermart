@@ -25,6 +25,12 @@ func main() {
 		log.Fatalf("database connection error: %v", err)
 	}
 
+	ctx := context.Background()
+
+	if err := infrastructure.EnsureSchema(ctx, db); err != nil {
+		log.Fatalf("schema init failed: %v", err)
+	}
+
 	userRepo := repositories.NewUserRepository(db)
 	orderRepo := repositories.NewOrderRepository(db)
 	withdrawRepo := repositories.NewWithdrawalRepository(db)
@@ -47,9 +53,9 @@ func main() {
 
 	accrualWorker := worker.NewAccrualWorker(orderRepo, accrualClient)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctxWorker, cancelWorker := context.WithCancel(context.Background())
 
-	go accrualWorker.Start(ctx)
+	go accrualWorker.Start(ctxWorker)
 
 	server := &http.Server{
 		Addr:    cfg.RunAddress,
@@ -72,7 +78,7 @@ func main() {
 
 	log.Println("shutdown initiated")
 
-	cancel()
+	cancelWorker()
 
 	ctxShutdown, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdownCancel()

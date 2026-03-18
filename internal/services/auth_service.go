@@ -7,7 +7,11 @@ import (
 	"gophermart/internal/entities"
 	"gophermart/internal/repositories"
 	"gophermart/internal/utils"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
+
+var ErrUserExists = errors.New("user exists")
 
 type AuthService struct {
 	users repositories.UserRepository
@@ -35,7 +39,19 @@ func (s *AuthService) Register(
 		Password: hash,
 	}
 
-	return s.users.Create(ctx, user)
+	err = s.users.Create(ctx, user)
+	if err != nil {
+
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			if pgErr.Code == "23505" {
+				return ErrUserExists
+			}
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 func (s *AuthService) Login(

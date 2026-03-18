@@ -1,4 +1,4 @@
-# go-musthave-diploma
+# gofermart
 
 Для запуска проекта нужно выполнить 
 
@@ -16,26 +16,25 @@ python test_gophermart.py
  который прогонит базовые проверки
 
 
+ручной запуск бинаря
+```bash 
+
+export DATABASE_URI="postgres://user:pass@localhost:5432/gofermart?sslmode=disable"
+export RUN_ADDRESS=":8080"
+export ACCRUAL_SYSTEM_ADDRESS="http://localhost:8081"
 
 
-# Начало работы
+curl -X POST http://localhost:8080/api/user/register \
+-H "Content-Type: application/json" \
+-d '{"login":"test","password":"123"}'
 
-1. Склонируйте репозиторий в любую подходящую директорию на вашем компьютере.
-2. В корне репозитория выполните команду `go mod init <name>` (где `<name>` — адрес вашего репозитория на GitHub без
-   префикса `https://`) для создания модуля
+go install github.com/pressly/goose/v3/cmd/goose@latest
 
-# Обновление шаблона
 
-Чтобы иметь возможность получать обновления автотестов и других частей шаблона, выполните команду:
+goose -dir migrations postgres \
+"postgres://user:pass@localhost:5432/gofermart?sslmode=disable" \
+up
 
+go build -o bin/gophermart ./cmd/gophermart/main.go
+./bin/gophermart
 ```
-git remote add -m master template https://github.com/yandex-praktikum/go-musthave-diploma-tpl.git
-```
-
-Для обновления кода автотестов выполните команду:
-
-```
-git fetch template && git checkout template/master .github
-```
-
-Затем добавьте полученные изменения в свой репозиторий.

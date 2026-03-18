@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 
@@ -42,8 +43,14 @@ func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 
 	err := c.service.Register(r.Context(), req.Login, req.Password)
 	if err != nil {
+
+		if errors.Is(err, services.ErrUserExists) {
+			http.Error(w, "login already exists", http.StatusConflict)
+			return
+		}
+
 		log.Printf("register error: %v", err)
-		http.Error(w, "login already exists", http.StatusConflict)
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
