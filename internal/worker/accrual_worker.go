@@ -20,12 +20,13 @@ type AccrualWorker struct {
 func NewAccrualWorker(
 	repo repositories.OrderRepository,
 	accrual infrastructure.AccrualClient,
+	ctx context.Context,
 ) *AccrualWorker {
 
 	return &AccrualWorker{
 		repo:    repo,
 		accrual: accrual,
-		pool:    NewPool(5),
+		pool:    NewPool(5, ctx),
 		stop:    make(chan struct{}),
 	}
 }

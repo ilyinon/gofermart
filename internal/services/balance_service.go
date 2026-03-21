@@ -6,6 +6,7 @@ import (
 
 	"gophermart/internal/entities"
 	"gophermart/internal/repositories"
+	"gophermart/internal/utils"
 )
 
 var ErrNotEnoughBalance = errors.New("not enough balance")
@@ -36,11 +37,13 @@ func (s *BalanceService) GetBalance(
 		return 0, 0, err
 	}
 
-	var accrual float64
-
-	for _, o := range orders {
-		accrual += o.Accrual
-	}
+	accrual := utils.Reduce(
+		utils.SliceSeq(orders),
+		0.0,
+		func(sum float64, o entities.Order) float64 {
+			return sum + o.Accrual
+		},
+	)
 
 	withdrawals, err := s.withdrawRepo.GetByUser(ctx, userID)
 	if err != nil {

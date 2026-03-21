@@ -4,12 +4,14 @@ import "testing"
 
 func TestJWT(t *testing.T) {
 
-	token, err := GenerateToken(1)
+	manager := NewJWTManager("test-secret")
+
+	token, err := manager.GenerateToken(1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	id, err := ParseToken(token)
+	id, err := manager.ParseToken(token)
 	if err != nil {
 		t.Fatal(err)
 	}

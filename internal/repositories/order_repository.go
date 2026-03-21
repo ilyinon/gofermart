@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"gophermart/internal/entities"
 
@@ -10,7 +11,6 @@ import (
 )
 
 type OrderRepository interface {
-
 	Create(ctx context.Context, order *entities.Order) error
 
 	GetByNumber(ctx context.Context, number string) (*entities.Order, error)
@@ -23,12 +23,12 @@ type OrderRepository interface {
 }
 
 type orderRepository struct {
-	db *pgxpool.Pool
+	*BaseRepository[entities.Order]
 }
 
 func NewOrderRepository(db *pgxpool.Pool) OrderRepository {
 	return &orderRepository{
-		db: db,
+		BaseRepository: NewBaseRepository[entities.Order](db),
 	}
 }
 
@@ -50,7 +50,11 @@ func (r *orderRepository) Create(
 		order.Status,
 	)
 
-	return err
+	if err != nil {
+		return fmt.Errorf("create order: %w", err)
+	}
+
+	return nil
 }
 
 func (r *orderRepository) GetByNumber(
@@ -81,7 +85,7 @@ func (r *orderRepository) GetByNumber(
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get order by number: %w", err)
 	}
 
 	if accrual.Valid {
@@ -105,7 +109,7 @@ func (r *orderRepository) GetByUser(
 
 	rows, err := r.db.Query(ctx, query, userID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get orders by user: %w", err)
 	}
 
 	defer rows.Close()
@@ -126,7 +130,7 @@ func (r *orderRepository) GetByUser(
 		)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan order: %w", err)
 		}
 
 		if accrual.Valid {
@@ -153,7 +157,7 @@ func (r *orderRepository) GetPending(
 
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get pending orders: %w", err)
 	}
 
 	defer rows.Close()
@@ -174,7 +178,7 @@ func (r *orderRepository) GetPending(
 		)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan pending order: %w", err)
 		}
 
 		if accrual.Valid {
@@ -206,5 +210,9 @@ func (r *orderRepository) Update(
 		order.Accrual,
 	)
 
-	return err
+	if err != nil {
+		return fmt.Errorf("update order: %w", err)
+	}
+
+	return nil
 }

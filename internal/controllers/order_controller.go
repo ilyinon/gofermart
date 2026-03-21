@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -50,7 +50,7 @@ func (c *OrderController) Upload(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 
-		log.Printf("order upload error: %v", err)
+		slog.Error("order upload error:", "err", err)
 
 		if errors.Is(err, services.ErrOrderExists) {
 			w.WriteHeader(http.StatusOK)

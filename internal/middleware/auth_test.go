@@ -10,9 +10,11 @@ import (
 
 func TestAuthMiddleware(t *testing.T) {
 
-	token, _ := utils.GenerateToken(1)
+	jwt := utils.NewJWTManager("test-secret")
+	token, _ := jwt.GenerateToken(1)
 
-	handler := Auth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	middleware := NewAuthMiddleware(jwt)
+	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		id, ok := GetUserID(r.Context())
 

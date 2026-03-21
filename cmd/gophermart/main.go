@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +13,7 @@ import (
 	"gophermart/internal/infrastructure"
 	"gophermart/internal/repositories"
 	"gophermart/internal/services"
+	"gophermart/internal/utils"
 	"gophermart/internal/worker"
 )
 
@@ -20,22 +21,37 @@ func main() {
 
 	cfg := config.Load()
 
+	logger := slog.New(
+		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}),
+	).With(
+		"service", "gophermart",
+		"env", "dev",
+	)
+
+	slog.SetDefault(logger)
+
 	db, err := infrastructure.NewPostgres(cfg.DatabaseURI)
 	if err != nil {
-		log.Fatalf("database connection error: %v", err)
+		slog.Error("database connection error", "err", err)
+		os.Exit(1)
 	}
 
 	ctx := context.Background()
 
 	if err := infrastructure.EnsureSchema(ctx, db); err != nil {
-		log.Fatalf("schema init failed: %v", err)
+		slog.Error("schema init failed", "err", err)
+		os.Exit(1)
 	}
 
 	userRepo := repositories.NewUserRepository(db)
 	orderRepo := repositories.NewOrderRepository(db)
 	withdrawRepo := repositories.NewWithdrawalRepository(db)
 
-	authService := services.NewAuthService(userRepo)
+	jwtManager := utils.NewJWTManager(cfg.JWTSecret)
+	authService := services.NewAuthService(userRepo, jwtManager)
+
 	orderService := services.NewOrderService(orderRepo)
 	balanceService := services.NewBalanceService(orderRepo, withdrawRepo)
 
@@ -47,13 +63,17 @@ func main() {
 		authController,
 		orderController,
 		balanceController,
+		jwtManager,
 	)
+	ctxWorker, cancelWorker := context.WithCancel(context.Background())
 
 	accrualClient := infrastructure.NewAccrualClient(cfg.AccrualSystemAddress)
 
-	accrualWorker := worker.NewAccrualWorker(orderRepo, accrualClient)
-
-	ctxWorker, cancelWorker := context.WithCancel(context.Background())
+	accrualWorker := worker.NewAccrualWorker(
+		orderRepo,
+		accrualClient,
+		ctxWorker,
+	)
 
 	go accrualWorker.Start(ctxWorker)
 
@@ -63,10 +83,10 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("server started on %s", cfg.RunAddress)
+		slog.Info("server started", "addr", cfg.RunAddress)
 
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
+			slog.Error("server error", "err", err)
 		}
 	}()
 
@@ -76,7 +96,7 @@ func main() {
 
 	<-stop
 
-	log.Println("shutdown initiated")
+	slog.Info("shutdown initiated")
 
 	cancelWorker()
 
@@ -84,12 +104,12 @@ func main() {
 	defer shutdownCancel()
 
 	if err := server.Shutdown(ctxShutdown); err != nil {
-		log.Printf("server shutdown error: %v", err)
+		slog.Error("server shutdown error", "err", err)
 	}
 
 	accrualWorker.Stop()
 
 	db.Close()
 
-	log.Println("server stopped")
+	slog.Info("server stopped")
 }

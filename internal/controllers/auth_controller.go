@@ -3,7 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"gophermart/internal/services"
@@ -31,7 +31,7 @@ func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 	var req authRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("register decode error: %v", err)
+		slog.Error("register decode error", "err", err)
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
@@ -49,14 +49,14 @@ func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("register error: %v", err)
+		slog.Error("register error", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
 	token, err := c.service.Login(r.Context(), req.Login, req.Password)
 	if err != nil {
-		log.Printf("auto login error: %v", err)
+		slog.Error("auto login error", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -73,7 +73,7 @@ func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 	var req authRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("login decode error: %v", err)
+		slog.Error("login decode error", "err", err)
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
@@ -85,7 +85,13 @@ func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 
 	token, err := c.service.Login(r.Context(), req.Login, req.Password)
 	if err != nil {
-		http.Error(w, "invalid credentials", http.StatusUnauthorized)
+
+		if errors.Is(err, services.ErrInvalidCredentials) {
+			http.Error(w, "invalid credentials", http.StatusUnauthorized)
+			return
+		}
+
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 

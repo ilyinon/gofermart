@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"gophermart/internal/entities"
+	"gophermart/internal/utils"
 )
 
 type mockUserRepo struct {
@@ -25,7 +26,9 @@ func TestRegisterAndLogin(t *testing.T) {
 
 	repo := &mockUserRepo{}
 
-	service := NewAuthService(repo)
+	jwt := utils.NewJWTManager("test-secret")
+
+	service := NewAuthService(repo, jwt)
 
 	err := service.Register(context.Background(), "test", "123")
 	if err != nil {

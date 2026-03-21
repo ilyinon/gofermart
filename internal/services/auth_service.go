@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"gophermart/internal/entities"
 	"gophermart/internal/repositories"
@@ -11,15 +12,23 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-var ErrUserExists = errors.New("user exists")
+var (
+	ErrUserExists         = errors.New("user exists")
+	ErrInvalidCredentials = errors.New("invalid credentials")
+)
 
 type AuthService struct {
 	users repositories.UserRepository
+	jwt   *utils.JWTManager
 }
 
-func NewAuthService(users repositories.UserRepository) *AuthService {
+func NewAuthService(
+	users repositories.UserRepository,
+	jwt *utils.JWTManager,
+) *AuthService {
 	return &AuthService{
 		users: users,
+		jwt:   jwt,
 	}
 }
 
@@ -31,7 +40,7 @@ func (s *AuthService) Register(
 
 	hash, err := utils.HashPassword(password)
 	if err != nil {
-		return err
+		return fmt.Errorf("hash password: %w", err)
 	}
 
 	user := &entities.User{
@@ -48,7 +57,7 @@ func (s *AuthService) Register(
 			}
 		}
 
-		return err
+		return fmt.Errorf("create user: %w", err)
 	}
 
 	return nil
@@ -62,16 +71,16 @@ func (s *AuthService) Login(
 
 	user, err := s.users.GetByLogin(ctx, login)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("get user: %w", err)
 	}
 
 	if !utils.CheckPassword(password, user.Password) {
-		return "", errors.New("invalid credentials")
+		return "", ErrInvalidCredentials
 	}
 
-	token, err := utils.GenerateToken(user.ID)
+	token, err := s.jwt.GenerateToken(user.ID)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("generate token: %w", err)
 	}
 
 	return token, nil

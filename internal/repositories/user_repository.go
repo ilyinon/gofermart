@@ -2,6 +2,8 @@ package repositories
 
 import (
 	"context"
+	"fmt"
+
 	"gophermart/internal/entities"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,12 +15,12 @@ type UserRepository interface {
 }
 
 type userRepository struct {
-	db *pgxpool.Pool
+	*BaseRepository[entities.User]
 }
 
 func NewUserRepository(db *pgxpool.Pool) UserRepository {
 	return &userRepository{
-		db: db,
+		BaseRepository: NewBaseRepository[entities.User](db),
 	}
 }
 
@@ -43,7 +45,11 @@ func (r *userRepository) Create(
 		&user.CreatedAt,
 	)
 
-	return err
+	if err != nil {
+		return fmt.Errorf("create user: %w", err)
+	}
+
+	return nil
 }
 
 func (r *userRepository) GetByLogin(
@@ -71,7 +77,7 @@ func (r *userRepository) GetByLogin(
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get user by login: %w", err)
 	}
 
 	return user, nil

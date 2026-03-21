@@ -12,7 +12,15 @@ type contextKey string
 
 const userIDKey contextKey = "user_id"
 
-func Auth(next http.Handler) http.Handler {
+type AuthMiddleware struct {
+	jwt *utils.JWTManager
+}
+
+func NewAuthMiddleware(jwt *utils.JWTManager) *AuthMiddleware {
+	return &AuthMiddleware{jwt: jwt}
+}
+
+func (m *AuthMiddleware) Handler(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -25,7 +33,7 @@ func Auth(next http.Handler) http.Handler {
 
 		token := strings.TrimPrefix(header, "Bearer ")
 
-		userID, err := utils.ParseToken(token)
+		userID, err := m.jwt.ParseToken(token)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -38,8 +46,6 @@ func Auth(next http.Handler) http.Handler {
 }
 
 func GetUserID(ctx context.Context) (int64, bool) {
-
 	id, ok := ctx.Value(userIDKey).(int64)
-
 	return id, ok
 }

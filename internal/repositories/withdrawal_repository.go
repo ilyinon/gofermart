@@ -2,13 +2,14 @@ package repositories
 
 import (
 	"context"
+	"fmt"
+
 	"gophermart/internal/entities"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type WithdrawalRepository interface {
-
 	Create(
 		ctx context.Context,
 		withdrawal *entities.Withdrawal,
@@ -21,15 +22,12 @@ type WithdrawalRepository interface {
 }
 
 type withdrawalRepository struct {
-	db *pgxpool.Pool
+	*BaseRepository[entities.Withdrawal]
 }
 
-func NewWithdrawalRepository(
-	db *pgxpool.Pool,
-) WithdrawalRepository {
-
+func NewWithdrawalRepository(db *pgxpool.Pool) WithdrawalRepository {
 	return &withdrawalRepository{
-		db: db,
+		BaseRepository: NewBaseRepository[entities.Withdrawal](db),
 	}
 }
 
@@ -55,7 +53,11 @@ func (r *withdrawalRepository) Create(
 		&withdrawal.ProcessedAt,
 	)
 
-	return err
+	if err != nil {
+		return fmt.Errorf("create withdrawal: %w", err)
+	}
+
+	return nil
 }
 
 func (r *withdrawalRepository) GetByUser(
@@ -72,7 +74,7 @@ func (r *withdrawalRepository) GetByUser(
 
 	rows, err := r.db.Query(ctx, query, userID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get withdrawals by user: %w", err)
 	}
 
 	defer rows.Close()
@@ -92,7 +94,7 @@ func (r *withdrawalRepository) GetByUser(
 		)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan withdrawal: %w", err)
 		}
 
 		withdrawals = append(withdrawals, w)

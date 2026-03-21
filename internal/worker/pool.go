@@ -12,40 +12,42 @@ type Pool struct {
 	wg   sync.WaitGroup
 }
 
-func NewPool(size int) *Pool {
+func NewPool(size int, ctx context.Context) *Pool {
 
 	p := &Pool{
 		jobs: make(chan Job, 100),
 	}
 
 	for i := 0; i < size; i++ {
-
 		p.wg.Add(1)
-
-		go p.worker()
+		go p.worker(ctx)
 	}
 
 	return p
 }
 
-func (p *Pool) worker() {
-
+func (p *Pool) worker(ctx context.Context) {
 	defer p.wg.Done()
 
-	for job := range p.jobs {
+	for {
+		select {
+		case job, ok := <-p.jobs:
+			if !ok {
+				return
+			}
+			job(ctx)
 
-		job(context.Background())
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
 func (p *Pool) Submit(job Job) {
-
 	p.jobs <- job
 }
 
 func (p *Pool) Stop() {
-
 	close(p.jobs)
-
 	p.wg.Wait()
 }
