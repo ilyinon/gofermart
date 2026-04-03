@@ -1,25 +1,40 @@
-# go-musthave-diploma-tpl
+# gofermart
 
-Шаблон репозитория для индивидуального дипломного проекта курса «Go-разработчик»
+Для запуска проекта нужно выполнить 
 
-# Начало работы
-
-1. Склонируйте репозиторий в любую подходящую директорию на вашем компьютере.
-2. В корне репозитория выполните команду `go mod init <name>` (где `<name>` — адрес вашего репозитория на GitHub без
-   префикса `https://`) для создания модуля
-
-# Обновление шаблона
-
-Чтобы иметь возможность получать обновления автотестов и других частей шаблона, выполните команду:
-
-```
-git remote add -m master template https://github.com/yandex-praktikum/go-musthave-diploma-tpl.git
+```bash
+make up 
+make migrate 
+make run
 ```
 
-Для обновления кода автотестов выполните команду:
 
+Для тестирования 
+```bash
+python test_gophermart.py
 ```
-git fetch template && git checkout template/master .github
-```
+ который прогонит базовые проверки
 
-Затем добавьте полученные изменения в свой репозиторий.
+
+ручной запуск бинаря
+```bash 
+
+export DATABASE_URI="postgres://user:pass@localhost:5432/gofermart?sslmode=disable"
+export RUN_ADDRESS=":8080"
+export ACCRUAL_SYSTEM_ADDRESS="http://localhost:8081"
+
+
+curl -X POST http://localhost:8080/api/user/register \
+-H "Content-Type: application/json" \
+-d '{"login":"test","password":"123"}'
+
+go install github.com/pressly/goose/v3/cmd/goose@latest
+
+
+goose -dir migrations postgres \
+"postgres://user:pass@localhost:5432/gofermart?sslmode=disable" \
+up
+
+go build -o bin/gophermart ./cmd/gophermart/main.go
+./bin/gophermart
+```
